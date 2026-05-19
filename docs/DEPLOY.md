@@ -78,33 +78,43 @@ Update `NEXT_PUBLIC_SITE_URL` in `wrangler.jsonc` to match, then redeploy.
 
 ## Option B: Deploy via Cloudflare dashboard (Git)
 
-1. Push this repo to **GitHub** or **GitLab** (do not commit `.env.local` or `.dev.vars`).
-2. Open [Cloudflare dashboard](https://dash.cloudflare.com) → **Workers & Pages** → **Create**.
-3. Connect your repository.
-4. Configure the build:
+> **If you see:** *"Wrangler configuration file was found but it does not appear to be valid... pages_build_output_dir"* — you created a **Pages** project. This app must deploy as a **Worker**. Delete the Pages project and follow these steps.
+
+### Correct Cloudflare UI setup (Workers Builds)
+
+1. Push this repo to **GitHub** (do not commit `.env.local` or `.dev.vars`).
+2. [Cloudflare dashboard](https://dash.cloudflare.com) → **Workers & Pages** → **Create**
+3. Choose **Worker** → **Connect to Git** (not "Pages" / not static site)
+4. Select your repository
+5. **Build settings** (Settings → Build):
 
 | Setting | Value |
 |---------|-------|
-| Framework preset | None (or Workers) |
-| Build command | `npm run deploy` |
+| Production branch | `main` |
+| Build command | *(leave empty)* |
+| Deploy command | `npm run deploy` |
 | Root directory | `/` |
 
-If the dashboard asks for a separate build/deploy flow, use:
+`npm run deploy` runs OpenNext build + deploy together.
 
-- **Build command:** `npx opennextjs-cloudflare build`
-- **Deploy:** connect Workers CI/CD per [Cloudflare docs](https://developers.cloudflare.com/workers/ci-cd/)
-
-5. Add **environment variables / secrets** in the project settings:
+6. **Runtime secrets** (Settings → **Variables and Secrets**):
 
 | Name | Type | Required |
 |------|------|----------|
 | `OPENAI_API_KEY` | Secret | Yes |
 | `LAKERA_API_KEY` | Secret | Yes |
-| `LAKERA_PROJECT_ID` | Secret / Text | Yes |
-| `OPENAI_MODEL` | Text | No (`gpt-4o-mini`) |
+| `LAKERA_PROJECT_ID` | Secret | Yes |
+| `OPENAI_MODEL` | Text | No |
 | `NEXT_PUBLIC_SITE_URL` | Text | No (set after first deploy) |
 
-6. Deploy and open your Workers URL.
+7. Deploy / retry the build. Your URL: `https://lakera-guard-demo.<subdomain>.workers.dev`
+
+### Why the Pages error happens
+
+| | **Pages (wrong)** | **Workers (correct)** |
+|--|-------------------|----------------------|
+| Expects | `pages_build_output_dir` | `main: ".open-next/worker.js"` in `wrangler.jsonc` |
+| This app | Config skipped with warning | Works with `/api/chat` |
 
 ---
 
