@@ -163,6 +163,7 @@ Update `NEXT_PUBLIC_SITE_URL` in `wrangler.jsonc` to match, then redeploy.
 | Lakera auth error | Check `LAKERA_API_KEY` and `LAKERA_PROJECT_ID` secrets |
 | OpenAI error | Check key, billing, and `OPENAI_MODEL` |
 | Build fails locally on Windows | **Use GitHub Actions** (below) or WSL |
+| **Service binding Worker not found [10143]** | Set `name` and `services[].service` in `wrangler.jsonc` to match your Worker name in Cloudflare dashboard |
 | Metadata shows localhost | Set `NEXT_PUBLIC_SITE_URL` to production URL |
 
 ---
