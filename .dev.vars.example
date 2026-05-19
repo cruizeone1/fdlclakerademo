@@ -1,0 +1,10 @@
+# Copy to .dev.vars for `npm run preview` (Cloudflare Workers runtime locally).
+# Do not commit .dev.vars — it is gitignored.
+
+NEXTJS_ENV=development
+
+OPENAI_API_KEY=your-openai-key
+LAKERA_API_KEY=your-lakera-key
+LAKERA_PROJECT_ID=your-lakera-project-id
+OPENAI_MODEL=gpt-4o-mini
+NEXT_PUBLIC_SITE_URL=http://localhost:8787

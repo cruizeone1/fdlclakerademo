@@ -68,7 +68,29 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) for the landing page, or [http://localhost:3000/demo](http://localhost:3000/demo) for the interactive chat.
+
+## Publish to the web (Cloudflare)
+
+| Page | URL | Purpose |
+|------|-----|---------|
+| Landing | `/` | Public homepage to share |
+| Demo | `/demo` | Interactive Lakera + OpenAI interface |
+
+This app deploys to **Cloudflare Workers** via [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare).
+
+**Quick deploy:**
+
+```bash
+npm install
+npx wrangler login
+npx wrangler secret put OPENAI_API_KEY
+npx wrangler secret put LAKERA_API_KEY
+npx wrangler secret put LAKERA_PROJECT_ID
+npm run deploy
+```
+
+Full instructions (CLI + Git dashboard, custom domains, secrets): **[docs/DEPLOY.md](docs/DEPLOY.md)**
 
 ## Environment variables
 
@@ -78,6 +100,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `LAKERA_API_KEY` | Yes | Lakera Guard API key |
 | `LAKERA_PROJECT_ID` | No | Lakera project ID (uses default policy if omitted) |
 | `OPENAI_MODEL` | No | Model name (default: `gpt-4o-mini`) |
+| `NEXT_PUBLIC_SITE_URL` | No | Public URL for SEO/social metadata when deployed |
 
 ## How OpenAI is used
 
