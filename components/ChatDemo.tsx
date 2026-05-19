@@ -26,10 +26,22 @@ export function ChatDemo() {
         body: JSON.stringify({ prompt }),
       });
 
-      const data = (await response.json()) as ChatResponse | ChatErrorResponse;
+      const raw = await response.text();
+      let data: ChatResponse | ChatErrorResponse | null = null;
+
+      try {
+        data = raw ? (JSON.parse(raw) as ChatResponse | ChatErrorResponse) : null;
+      } catch {
+        setError(
+          response.ok
+            ? "Unexpected server response."
+            : `Server error (${response.status}). Try restarting the dev server.`,
+        );
+        return;
+      }
 
       if (!response.ok) {
-        setError("error" in data ? data.error : "Request failed");
+        setError("error" in (data ?? {}) ? (data as ChatErrorResponse).error : "Request failed");
         return;
       }
 
