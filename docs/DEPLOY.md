@@ -91,11 +91,15 @@ Update `NEXT_PUBLIC_SITE_URL` in `wrangler.jsonc` to match, then redeploy.
 | Setting | Value |
 |---------|-------|
 | Production branch | `main` |
-| Build command | *(leave empty)* |
-| Deploy command | `npm run deploy` |
+| Build command | `npm run build:cloudflare` |
+| Deploy command | `npm run deploy:cloudflare` |
 | Root directory | `/` |
 
-`npm run deploy` runs OpenNext build + deploy together.
+**Do not use** `npm run build` + `npx wrangler deploy` — that runs plain Next.js build and skips OpenNext, causing:
+
+`ERROR Could not find compiled Open Next config, did you run the build command?`
+
+**Alternative (single step):** leave Build command empty and set Deploy command to `npm run deploy` only.
 
 6. **Runtime secrets** (Settings → **Variables and Secrets**):
 
