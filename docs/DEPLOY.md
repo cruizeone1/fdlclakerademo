@@ -141,12 +141,60 @@ If the dashboard asks for a separate build/deploy flow, use:
 
 | Issue | Fix |
 |-------|-----|
-| 500 on `/api/chat` | Verify secrets in Cloudflare dashboard; redeploy after adding them |
+| **No URL after `npm run deploy`** | Build failed before deploy — see **Windows deploy failed** below |
+| **EISDIR / readlink on `route.ts`** | Windows + non-C: drive — use GitHub Actions or move to `C:\projects\lakerademo` |
+| **EPERM on `.next\trace`** | Stop dev server, delete `.next`, retry |
+| 500 on `/api/chat` | Verify Worker secrets; redeploy after adding them |
 | `nodejs_compat` errors | Ensure `wrangler.jsonc` has `nodejs_compat` flag |
 | Lakera auth error | Check `LAKERA_API_KEY` and `LAKERA_PROJECT_ID` secrets |
 | OpenAI error | Check key, billing, and `OPENAI_MODEL` |
-| Build fails locally on Windows | Try `npm run deploy` from WSL or use Cloudflare Git CI/CD |
+| Build fails locally on Windows | **Use GitHub Actions** (below) or WSL |
 | Metadata shows localhost | Set `NEXT_PUBLIC_SITE_URL` to production URL |
+
+---
+
+## Windows deploy failed? Use GitHub Actions (recommended)
+
+`npm run deploy` often **fails on Windows** (especially on `G:\` drives) with:
+
+```
+EISDIR: illegal operation on a directory, readlink '...\app\api\chat\route.ts'
+```
+
+When that happens, **no URL is printed** because the deploy step never runs.
+
+This repo includes `.github/workflows/deploy-cloudflare.yml` which builds on **Linux**.
+
+### One-time setup
+
+**1. Cloudflare API token** — Dashboard → **My Profile** → **API Tokens** → **Edit Cloudflare Workers** template
+
+**2. Account ID** — **Workers & Pages** → right sidebar
+
+**3. GitHub secrets** — Repo → **Settings** → **Secrets and variables** → **Actions**:
+
+| Secret | Value |
+|--------|-------|
+| `CLOUDFLARE_API_TOKEN` | Your API token |
+| `CLOUDFLARE_ACCOUNT_ID` | Your account ID |
+
+**4. Worker secrets** (works on Windows even when build fails):
+
+```powershell
+$env:Path = "C:\Program Files\nodejs;" + $env:Path
+npx wrangler login
+npx wrangler secret put OPENAI_API_KEY
+npx wrangler secret put LAKERA_API_KEY
+npx wrangler secret put LAKERA_PROJECT_ID
+```
+
+**5. Push to GitHub** — Actions runs automatically on push to `main`
+
+**6. Get your URL** after a green workflow run:
+
+`https://lakera-guard-demo.<your-subdomain>.workers.dev`
+
+Or: `npx wrangler deployments list`
 
 ---
 
