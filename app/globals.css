@@ -510,3 +510,73 @@ a {
   margin-top: 0.35rem;
   max-width: 50ch;
 }
+
+.sidebar-section {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-section h3 {
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.document-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.document-upload-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.document-upload-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.document-file-input {
+  display: none;
+}
+
+.document-help {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.document-preview {
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  max-height: 180px;
+  overflow: auto;
+}
+
+.document-preview-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.document-preview pre {
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.document-attached-note {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}

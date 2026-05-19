@@ -1,11 +1,11 @@
-import { SYSTEM_PROMPT } from "./lakera";
+import { buildChatMessages, type ChatContextInput } from "@/lib/chat-context";
 
 interface OpenAIChatResponse {
   choices?: Array<{ message?: { content?: string } }>;
   error?: { message?: string };
 }
 
-export async function generateOpenAIResponse(userPrompt: string): Promise<string> {
+export async function generateOpenAIResponse(context: ChatContextInput): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is not configured");
@@ -13,7 +13,6 @@ export async function generateOpenAIResponse(userPrompt: string): Promise<string
 
   const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
-  // Use fetch (not the OpenAI Node SDK) for Cloudflare Workers compatibility
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -22,10 +21,7 @@ export async function generateOpenAIResponse(userPrompt: string): Promise<string
     },
     body: JSON.stringify({
       model,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userPrompt },
-      ],
+      messages: buildChatMessages(context),
       max_tokens: 500,
       temperature: 0.7,
     }),

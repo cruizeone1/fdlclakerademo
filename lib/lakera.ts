@@ -1,3 +1,5 @@
+import { buildChatMessages, type ChatContextInput } from "@/lib/chat-context";
+
 export interface GuardBreakdownItem {
   project_id?: string;
   policy_id?: string;
@@ -25,10 +27,10 @@ export interface GuardScreenResult {
 const LAKERA_GUARD_URL = "https://api.lakera.ai/v2/guard";
 
 const SYSTEM_PROMPT =
-  "You are a helpful assistant for a product demo. Answer clearly and concisely.";
+  "You are a helpful assistant for a product demo. Answer clearly and concisely based on any reference document provided.";
 
 export async function screenPromptWithLakera(
-  userPrompt: string,
+  context: ChatContextInput,
 ): Promise<GuardScreenResult> {
   const apiKey = process.env.LAKERA_API_KEY;
   if (!apiKey) {
@@ -36,10 +38,7 @@ export async function screenPromptWithLakera(
   }
 
   const body: Record<string, unknown> = {
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: userPrompt },
-    ],
+    messages: buildChatMessages(context),
     breakdown: true,
   };
 

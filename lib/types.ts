@@ -2,26 +2,32 @@ import type { GuardBreakdownItem } from "@/lib/lakera";
 
 export interface ChatRequestBody {
   prompt: string;
+  documentContent?: string;
+  documentName?: string;
+}
+
+interface ChatGuardResult {
+  flagged: boolean;
+  requestUuid?: string;
+  breakdown: GuardBreakdownItem[];
 }
 
 export interface ChatSuccessResponse {
   status: "allowed";
   prompt: string;
+  documentName?: string;
+  hasDocument: boolean;
   response: string;
-  guard: {
-    flagged: false;
-    requestUuid?: string;
-    breakdown: GuardBreakdownItem[];
-  };
+  guard: ChatGuardResult & { flagged: false };
 }
 
 export interface ChatBlockedResponse {
   status: "blocked";
   prompt: string;
-  guard: {
+  documentName?: string;
+  hasDocument: boolean;
+  guard: ChatGuardResult & {
     flagged: true;
-    requestUuid?: string;
-    breakdown: GuardBreakdownItem[];
     triggeredDetectors: string[];
     message: string;
   };

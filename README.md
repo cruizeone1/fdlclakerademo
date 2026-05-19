@@ -4,8 +4,8 @@ A small full-stack demo that shows how to protect an LLM chat application with *
 
 ## What this demo does
 
-1. Accepts a user prompt in a web UI
-2. Sends the prompt to **Lakera Guard** (`/v2/guard`) for prompt-injection screening
+1. Accepts a user prompt (and optional reference document) in a web UI
+2. Sends the prompt and document context to **Lakera Guard** (`/v2/guard`) for prompt-injection screening
 3. If Lakera flags the prompt → **blocks** the request and shows guard details
 4. If Lakera clears the prompt → calls **OpenAI Chat Completions** and displays the model response
 
