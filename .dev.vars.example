@@ -4,9 +4,13 @@
 NEXTJS_ENV=development
 
 OPENAI_API_KEY=your-openai-key
+LAKERA_GUARD_API_KEY=your-guard-api-key
+LAKERA_PLATFORM_API_KEY=your-platform-api-key
+LAKERA_API_KEY=your-lakera-key
+LAKERA_PROJECT_ID=project-2733216741
+LAKERA_GUARD_URL=https://us-east-1.api.lakera.ai/v2/guard
 LAKERA_CLIENT_ID=your-client-id
 LAKERA_ACCESS_KEY=your-secret-key
 LAKERA_AUTH_URL=https://cloudinfra-gw-us.portal.checkpoint.com/auth/external
-LAKERA_PROJECT_ID=your-lakera-project-id
 OPENAI_MODEL=gpt-4o-mini
 NEXT_PUBLIC_SITE_URL=http://localhost:8787

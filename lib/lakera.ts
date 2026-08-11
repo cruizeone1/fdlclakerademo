@@ -24,57 +24,41 @@ export interface GuardScreenResult {
   triggeredDetectors: string[];
 }
 
-const LAKERA_GUARD_URL = "https://api.lakera.ai/v2/guard";
+/**
+ * Guard SaaS — https://docs.lakera.ai/docs/api/guard
+ * Default to Virginia (us-east-1). This org rejects EU processing (401).
+ */
+const LAKERA_GUARD_URL =
+  process.env.LAKERA_GUARD_URL ?? "https://us-east-1.api.lakera.ai/v2/guard";
 const DEFAULT_AUTH_URL =
   "https://cloudinfra-gw-us.portal.checkpoint.com/auth/external";
 
 const SYSTEM_PROMPT =
   "You are a helpful assistant for a product demo. Answer clearly and concisely based on any reference document provided.";
 
-/** Cached Infinity Portal token (expires ~30 minutes). */
-let cachedToken: { value: string; expiresAtMs: number } | null = null;
+let cachedPortalToken: { value: string; expiresAtMs: number } | null = null;
+/** Once a dashboard key is known-bad (401), skip it for this process and use portal. */
+let guardApiKeyRejected = false;
 
 interface AuthResponse {
   token?: string;
   expiresIn?: number;
-  success?: boolean;
   data?: {
     token?: string;
     expiresIn?: number;
   };
 }
 
-function extractToken(payload: AuthResponse): { token: string; expiresInSec: number } {
-  const token = payload.data?.token ?? payload.token;
-  if (!token) {
-    throw new Error("Check Point auth response did not include a token");
-  }
-
-  const expiresInSec = payload.data?.expiresIn ?? payload.expiresIn ?? 25 * 60;
-  return { token, expiresInSec };
-}
-
-/**
- * Exchange Infinity Portal Client ID + Secret for a short-lived Bearer token.
- * Falls back to LAKERA_API_KEY when Client ID credentials are not configured.
- */
-async function getLakeraBearerToken(): Promise<string> {
-  const legacyApiKey = process.env.LAKERA_API_KEY;
+async function getPortalToken(): Promise<string> {
   const clientId = process.env.LAKERA_CLIENT_ID;
   const accessKey = process.env.LAKERA_ACCESS_KEY;
-
   if (!clientId || !accessKey) {
-    if (legacyApiKey) {
-      return legacyApiKey;
-    }
-    throw new Error(
-      "Lakera auth is not configured — set LAKERA_CLIENT_ID and LAKERA_ACCESS_KEY (or LAKERA_API_KEY)",
-    );
+    throw new Error("LAKERA_CLIENT_ID and LAKERA_ACCESS_KEY are required for portal auth");
   }
 
   const now = Date.now();
-  if (cachedToken && cachedToken.expiresAtMs > now + 60_000) {
-    return cachedToken.value;
+  if (cachedPortalToken && cachedPortalToken.expiresAtMs > now + 60_000) {
+    return cachedPortalToken.value;
   }
 
   const authUrl = process.env.LAKERA_AUTH_URL ?? DEFAULT_AUTH_URL;
@@ -90,22 +74,68 @@ async function getLakeraBearerToken(): Promise<string> {
   }
 
   const payload = (await response.json()) as AuthResponse;
-  const { token, expiresInSec } = extractToken(payload);
+  const token = payload.data?.token ?? payload.token;
+  if (!token) {
+    throw new Error("Check Point auth response did not include a token");
+  }
 
-  cachedToken = {
+  const expiresInSec = payload.data?.expiresIn ?? payload.expiresIn ?? 25 * 60;
+  cachedPortalToken = {
     value: token,
-    // Refresh a minute early; clamp to at least 60s of usable life.
     expiresAtMs: now + Math.max(expiresInSec - 60, 60) * 1000,
   };
-
   return token;
+}
+
+function getDashboardGuardKey(): string | null {
+  if (guardApiKeyRejected) return null;
+  return process.env.LAKERA_GUARD_API_KEY ?? null;
+}
+
+/**
+ * Prefer dashboard Guard API key (attributes to platform analytics).
+ * Fall back to Infinity Portal Client ID/Secret token.
+ * Docs: https://docs.lakera.ai/docs/api#authentication
+ */
+async function resolveBearerToken(preferPortal: boolean): Promise<{ token: string; source: "guard_key" | "portal" }> {
+  if (!preferPortal) {
+    const apiKey = getDashboardGuardKey();
+    if (apiKey) {
+      return { token: apiKey, source: "guard_key" };
+    }
+  }
+
+  if (process.env.LAKERA_CLIENT_ID && process.env.LAKERA_ACCESS_KEY) {
+    return { token: await getPortalToken(), source: "portal" };
+  }
+
+  const apiKey = getDashboardGuardKey() ?? process.env.LAKERA_API_KEY;
+  if (apiKey) {
+    return { token: apiKey, source: "guard_key" };
+  }
+
+  throw new Error(
+    "Lakera auth is not configured — set LAKERA_GUARD_API_KEY and/or LAKERA_CLIENT_ID + LAKERA_ACCESS_KEY",
+  );
+}
+
+async function postGuard(
+  bearerToken: string,
+  body: Record<string, unknown>,
+): Promise<Response> {
+  return fetch(LAKERA_GUARD_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${bearerToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
 }
 
 export async function screenPromptWithLakera(
   context: ChatContextInput,
 ): Promise<GuardScreenResult> {
-  const bearerToken = await getLakeraBearerToken();
-
   const body: Record<string, unknown> = {
     messages: buildChatMessages(context),
     breakdown: true,
@@ -116,22 +146,25 @@ export async function screenPromptWithLakera(
     body.project_id = projectId;
   }
 
-  const response = await fetch(LAKERA_GUARD_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${bearerToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  let { token, source } = await resolveBearerToken(false);
+  let response = await postGuard(token, body);
+
+  // Dashboard key invalid → retry once with Infinity Portal token.
+  if (response.status === 401 && source === "guard_key") {
+    guardApiKeyRejected = true;
+    cachedPortalToken = null;
+    ({ token, source } = await resolveBearerToken(true));
+    response = await postGuard(token, body);
+  }
 
   if (!response.ok) {
-    // Auth token may have been revoked early — clear cache and surface the error.
     if (response.status === 401) {
-      cachedToken = null;
+      cachedPortalToken = null;
     }
     const errorText = await response.text();
-    throw new Error(`Lakera Guard request failed (${response.status}): ${errorText}`);
+    throw new Error(
+      `Lakera Guard request failed (${response.status}) via ${source}: ${errorText}`,
+    );
   }
 
   const data = (await response.json()) as GuardResponse;
