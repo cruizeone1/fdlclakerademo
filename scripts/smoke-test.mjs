@@ -20,36 +20,6 @@ const SAMPLE_PROMPTS = [
   },
 ];
 
-async function getLakeraBearerToken() {
-  if (process.env.LAKERA_CLIENT_ID && process.env.LAKERA_ACCESS_KEY) {
-    const authUrl =
-      process.env.LAKERA_AUTH_URL ??
-      "https://cloudinfra-gw-us.portal.checkpoint.com/auth/external";
-    const authResponse = await fetch(authUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clientId: process.env.LAKERA_CLIENT_ID,
-        accessKey: process.env.LAKERA_ACCESS_KEY,
-      }),
-    });
-    const authText = await authResponse.text();
-    if (!authResponse.ok) {
-      throw new Error(`Check Point auth ${authResponse.status}: ${authText}`);
-    }
-    const authJson = JSON.parse(authText);
-    const token = authJson?.data?.token ?? authJson?.token;
-    if (!token) throw new Error("Auth response missing token");
-    return token;
-  }
-
-  const apiKey = process.env.LAKERA_API_KEY ?? process.env.LAKERA_GUARD_API_KEY;
-  if (!apiKey) {
-    throw new Error("Set LAKERA_CLIENT_ID+LAKERA_ACCESS_KEY or LAKERA_API_KEY");
-  }
-  return apiKey;
-}
-
 async function screenWithLakera(prompt) {
   const body = {
     messages: [
@@ -63,14 +33,10 @@ async function screenWithLakera(prompt) {
     body.project_id = process.env.LAKERA_PROJECT_ID;
   }
 
-  const bearerToken = await getLakeraBearerToken();
-
-  const guardUrl =
-    process.env.LAKERA_GUARD_URL ?? "https://us-east-1.api.lakera.ai/v2/guard";
-  const response = await fetch(guardUrl, {
+  const response = await fetch("https://api.lakera.ai/v2/guard", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${bearerToken}`,
+      Authorization: `Bearer ${process.env.LAKERA_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
@@ -119,9 +85,7 @@ function summarizeBreakdown(breakdown = []) {
 }
 
 async function main() {
-  const missing = ["OPENAI_API_KEY", "LAKERA_API_KEY"].filter(
-    (key) => !process.env[key] && !(key === "LAKERA_API_KEY" && process.env.LAKERA_GUARD_API_KEY),
-  );
+  const missing = ["OPENAI_API_KEY", "LAKERA_API_KEY"].filter((key) => !process.env[key]);
   if (missing.length) {
     console.error(`Missing env vars: ${missing.join(", ")}`);
     process.exit(1);
@@ -129,7 +93,6 @@ async function main() {
 
   console.log("=== Lakera Guard smoke test ===");
   console.log(`Project ID: ${process.env.LAKERA_PROJECT_ID ?? "(default policy)"}`);
-  console.log("Auth: LAKERA_API_KEY (Guard SaaS Bearer)");
   console.log("");
 
   let mismatches = 0;

@@ -178,11 +178,6 @@ lib/
 
 See [docs/POLICY-TUNING.md](docs/POLICY-TUNING.md) for Lakera dashboard steps and recommended settings for this demo project.
 
-## Demo narrative and presenter script
-
-- [docs/NARRATIVE.md](docs/NARRATIVE.md) — Layman's guide to the demo architecture and code
-- [docs/PRESENTER-SCRIPT.md](docs/PRESENTER-SCRIPT.md) — Timed 5-minute live presentation script
-
 Re-test after policy changes:
 
 ```bash
